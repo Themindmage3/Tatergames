@@ -3,23 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatroom</title>
+    <title>Firebase Chatroom</title>
     <style>
         /* Basic styling */
         body { font-family: Arial, sans-serif; }
-        #chat { width: 100%; height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; }
+        #chat { width: 100%; height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-top: 20px; }
         #message-box { width: 80%; padding: 10px; }
         #send-btn { padding: 10px; }
+        #login-form { display: none; text-align: center; margin-top: 50px; }
+        #chatroom { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>Firebase Chatroom</h2>
+    <!-- Login Form -->
+    <div id="login-form">
+        <h2>Login to Chat</h2>
+        <input type="email" id="email" placeholder="Email" required><br><br>
+        <input type="password" id="password" placeholder="Password" required><br><br>
+        <button id="login-btn">Login</button><br><br>
+        <button id="signup-btn">Sign Up</button>
+    </div>
 
-    <div id="chat"></div>
+    <!-- Chatroom -->
+    <div id="chatroom">
+        <h2>Welcome to the Chatroom</h2>
+        <button id="logout-btn">Logout</button><br><br>
 
-    <input type="text" id="message-box" placeholder="Type your message...">
-    <button id="send-btn">Send</button>
+        <!-- Messages -->
+        <div id="chat"></div>
+
+        <!-- Input and send button -->
+        <input type="text" id="message-box" placeholder="Type your message...">
+        <button id="send-btn">Send</button>
+    </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
@@ -27,7 +44,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
     <script>
-        // Import the functions you need from the SDKs you need
+        // 1. Initialize Firebase
+        const firebaseConfig = {
+       // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -35,7 +54,6 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
   apiKey: "AIzaSyAvjpabeqd4KHgQcHCcMzaemVZUsfRgmyA",
   authDomain: "sigma-14368.firebaseapp.com",
   databaseURL: "https://sigma-14368-default-rtdb.firebaseio.com",
@@ -44,37 +62,86 @@ const firebaseConfig = {
   messagingSenderId: "1024504859670",
   appId: "1:1024504859670:web:d3f25cbb1fadb169a17937",
   measurementId: "G-VCST4QC349"
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
         };
 
-
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
 
+        // Elements
+        const loginForm = document.getElementById('login-form');
+        const chatroom = document.getElementById('chatroom');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const messageBox = document.getElementById('message-box');
+        const chatDiv = document.getElementById('chat');
+        const sendBtn = document.getElementById('send-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+
+        // Show the login form initially
+        loginForm.style.display = 'block';
+        chatroom.style.display = 'none';
+
         // 2. Handle user authentication
         auth.onAuthStateChanged(user => {
             if (user) {
+                // User is logged in
                 console.log("User logged in:", user);
-                document.getElementById('send-btn').disabled = false;
+                loginForm.style.display = 'none'; // Hide login form
+                chatroom.style.display = 'block'; // Show chatroom
+                loadMessages(); // Load messages when the user is logged in
             } else {
-                console.log("No user logged in");
-                document.getElementById('send-btn').disabled = true;
-                loginUser(); // If no user logged in, prompt for login
+                // No user logged in
+                loginForm.style.display = 'block'; // Show login form
+                chatroom.style.display = 'none'; // Hide chatroom
             }
         });
 
-        // 3. Handle sending messages
-        document.getElementById('send-btn').addEventListener('click', function() {
-            const message = document.getElementById('message-box').value;
+        // 3. Handle user login
+        loginBtn.addEventListener('click', function() {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log("Logged in as", userCredential.user.email);
+                })
+                .catch((error) => {
+                    console.error("Error logging in:", error);
+                    alert("Login failed! Please check your credentials.");
+                });
+        });
+
+        // 4. Handle user signup
+        signupBtn.addEventListener('click', function() {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log("User signed up:", userCredential.user.email);
+                })
+                .catch((error) => {
+                    console.error("Error signing up:", error);
+                    alert("Sign up failed! Please check your credentials.");
+                });
+        });
+
+        // 5. Handle sending messages
+        sendBtn.addEventListener('click', function() {
+            const message = messageBox.value;
             const user = auth.currentUser;
             if (message && user) {
                 sendMessage(user.displayName || "Anonymous", message);
-                document.getElementById('message-box').value = ''; // Clear input
+                messageBox.value = ''; // Clear input
             }
         });
 
@@ -88,31 +155,30 @@ const analytics = getAnalytics(app);
             });
         }
 
-        // 4. Fetch messages in real-time
-        const messagesRef = database.ref('messages');
-        messagesRef.on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            const messageElement = document.createElement('p');
-            messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message} <em>(${new Date(data.timestamp).toLocaleTimeString()})</em>`;
-            document.getElementById('chat').appendChild(messageElement);
-            document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight; // Scroll to bottom
-        });
+        // 6. Load messages from Firebase
+        function loadMessages() {
+            const messagesRef = database.ref('messages');
+            messagesRef.on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                const messageElement = document.createElement('p');
+                messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message} <em>(${new Date(data.timestamp).toLocaleTimeString()})</em>`;
+                chatDiv.appendChild(messageElement);
+                chatDiv.scrollTop = chatDiv.scrollHeight; // Scroll to bottom
+            });
+        }
 
-        // 5. Handle login
-        function loginUser() {
-            const email = prompt("Enter your email:");
-            const password = prompt("Enter your password:");
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log("Logged in as", user.email);
+        // 7. Handle logout
+        logoutBtn.addEventListener('click', function() {
+            auth.signOut()
+                .then(() => {
+                    console.log("User logged out");
                 })
                 .catch((error) => {
-                    console.error("Error logging in:", error);
-                    alert("Login failed! Please check your credentials.");
+                    console.error("Error logging out:", error);
                 });
-        }
+        });
     </script>
+
 </body>
 </html>
+
