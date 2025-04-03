@@ -3,113 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Computer science club homework</title>
+    <title>Chatroom</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        #chatroom {
-            display: none;
-        }
-        #login {
-            margin: 20px;
-        }
-        #messages {
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 300px;
-            overflow-y: scroll;
-            margin-bottom: 20px;
-        }
-        #newMessage {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .message {
-            margin-bottom: 10px;
-        }
-        .username {
-            font-weight: bold;
-        }
+        /* Basic styling */
+        body { font-family: Arial, sans-serif; }
+        #chat { width: 100%; height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; }
+        #message-box { width: 80%; padding: 10px; }
+        #send-btn { padding: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="login">
-        <h2>Enter a Username</h2>
-        <input type="text" id="usernameInput" placeholder="Username">
-        <button onclick="enterChat()">Join Chat</button>
-        <p id="errorMessage" style="color: red; display: none;">Username already taken, please choose another.</p>
-    </div>
+    <h2>Firebase Chatroom</h2>
 
-    <div id="chatroom">
-        <h2>Welcome to the Chatroom, <span id="currentUser"></span></h2>
-        <div id="messages"></div>
-        <input type="text" id="newMessage" placeholder="Type a message...">
-        <button onclick="sendMessage()">Send</button>
-        <button onclick="leaveChat()">Leave Chat</button>
-    </div>
+    <div id="chat"></div>
+
+    <input type="text" id="message-box" placeholder="Type your message...">
+    <button id="send-btn">Send</button>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
     <script>
-        const takenUsernames = [];  // To store taken usernames
-        const messagesContainer = document.getElementById("messages");
-        const errorMessage = document.getElementById("errorMessage");
-        const currentUserSpan = document.getElementById("currentUser");
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-        function enterChat() {
-            const usernameInput = document.getElementById("usernameInput").value;
-            
-            // Check if the username is taken
-            if (takenUsernames.includes(usernameInput) || usernameInput === "") {
-                errorMessage.style.display = "block";
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAvjpabeqd4KHgQcHCcMzaemVZUsfRgmyA",
+  authDomain: "sigma-14368.firebaseapp.com",
+  databaseURL: "https://sigma-14368-default-rtdb.firebaseio.com",
+  projectId: "sigma-14368",
+  storageBucket: "sigma-14368.firebasestorage.app",
+  messagingSenderId: "1024504859670",
+  appId: "1:1024504859670:web:d3f25cbb1fadb169a17937",
+  measurementId: "G-VCST4QC349"
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+        };
+
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // 2. Handle user authentication
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("User logged in:", user);
+                document.getElementById('send-btn').disabled = false;
             } else {
-                // Add username to taken usernames
-                takenUsernames.push(usernameInput);
-
-                // Hide login and show chatroom
-                document.getElementById("login").style.display = "none";
-                document.getElementById("chatroom").style.display = "block";
-                
-                // Display the username in the chatroom
-                currentUserSpan.textContent = usernameInput;
+                console.log("No user logged in");
+                document.getElementById('send-btn').disabled = true;
+                loginUser(); // If no user logged in, prompt for login
             }
+        });
+
+        // 3. Handle sending messages
+        document.getElementById('send-btn').addEventListener('click', function() {
+            const message = document.getElementById('message-box').value;
+            const user = auth.currentUser;
+            if (message && user) {
+                sendMessage(user.displayName || "Anonymous", message);
+                document.getElementById('message-box').value = ''; // Clear input
+            }
+        });
+
+        function sendMessage(username, message) {
+            // Add message to Firebase Realtime Database
+            const messagesRef = database.ref('messages');
+            messagesRef.push({
+                username: username,
+                message: message,
+                timestamp: Date.now()
+            });
         }
 
-        function sendMessage() {
-            const newMessage = document.getElementById("newMessage").value;
+        // 4. Fetch messages in real-time
+        const messagesRef = database.ref('messages');
+        messagesRef.on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message} <em>(${new Date(data.timestamp).toLocaleTimeString()})</em>`;
+            document.getElementById('chat').appendChild(messageElement);
+            document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight; // Scroll to bottom
+        });
 
-            if (newMessage === "") return;
+        // 5. Handle login
+        function loginUser() {
+            const email = prompt("Enter your email:");
+            const password = prompt("Enter your password:");
 
-            // Display the message in the chat
-            const messageElement = document.createElement("div");
-            messageElement.classList.add("message");
-            messageElement.innerHTML = `<span class="username">${currentUserSpan.textContent}:</span> ${newMessage}`;
-            messagesContainer.appendChild(messageElement);
-
-            // Clear the input field
-            document.getElementById("newMessage").value = "";
-            
-            // Scroll to the bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function leaveChat() {
-            // Hide chatroom and show login again
-            document.getElementById("chatroom").style.display = "none";
-            document.getElementById("login").style.display = "block";
-            
-            // Remove the username from the taken list
-            const username = currentUserSpan.textContent;
-            const index = takenUsernames.indexOf(username);
-            if (index !== -1) {
-                takenUsernames.splice(index, 1);
-            }
-
-            // Clear the messages
-            messagesContainer.innerHTML = "";
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log("Logged in as", user.email);
+                })
+                .catch((error) => {
+                    console.error("Error logging in:", error);
+                    alert("Login failed! Please check your credentials.");
+                });
         }
     </script>
-
 </body>
 </html>
