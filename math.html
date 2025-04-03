@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Practice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .problem {
+            font-size: 24px;
+            margin: 20px;
+        }
+        input[type="number"] {
+            padding: 5px;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        #nextProblem {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Math Practice</h1>
+    <div class="container">
+        <div id="problem" class="problem"></div>
+        <input type="number" id="userAnswer" placeholder="Your answer" required>
+        <button onclick="checkAnswer()">Check Answer</button>
+
+        <div class="result" id="resultMessage"></div>
+        <button id="nextProblem" onclick="generateProblem()">Next Problem</button>
+    </div>
+
+    <script>
+        let correctAnswer = 0;
+
+        // Function to generate a new math problem
+        function generateProblem() {
+            // Randomly choose between addition and subtraction
+            const isAddition = Math.random() > 0.5;
+
+            // Generate two random numbers between 1 and 20
+            const num1 = Math.floor(Math.random() * 20) + 1;
+            const num2 = Math.floor(Math.random() * 20) + 1;
+
+            // Calculate the correct answer
+            if (isAddition) {
+                correctAnswer = num1 + num2;
+                document.getElementById("problem").innerText = `${num1} + ${num2} = ?`;
+            } else {
+                correctAnswer = num1 - num2;
+                document.getElementById("problem").innerText = `${num1} - ${num2} = ?`;
+            }
+
+            // Reset the input field and result message
+            document.getElementById("userAnswer").value = "";
+            document.getElementById("resultMessage").innerText = "";
+            document.getElementById("nextProblem").style.display = "none";
+        }
+
+        // Function to check the user's answer
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById("userAnswer").value);
+
+            if (userAnswer === correctAnswer) {
+                document.getElementById("resultMessage").innerText = "Correct! Well done!";
+                document.getElementById("nextProblem").style.display = "inline-block";
+            } else {
+                document.getElementById("resultMessage").innerText = "Oops! Try again.";
+            }
+        }
+
+        // Generate the first problem when the page loads
+        window.onload = generateProblem;
+    </script>
+
+</body>
+</html>
