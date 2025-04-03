@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computer science club homework</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #chatroom {
+            display: none;
+        }
+        #login {
+            margin: 20px;
+        }
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+        }
+        #newMessage {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .username {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login">
+        <h2>Enter a Username</h2>
+        <input type="text" id="usernameInput" placeholder="Username">
+        <button onclick="enterChat()">Join Chat</button>
+        <p id="errorMessage" style="color: red; display: none;">Username already taken, please choose another.</p>
+    </div>
+
+    <div id="chatroom">
+        <h2>Welcome to the Chatroom, <span id="currentUser"></span></h2>
+        <div id="messages"></div>
+        <input type="text" id="newMessage" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="leaveChat()">Leave Chat</button>
+    </div>
+
+    <script>
+        const takenUsernames = [];  // To store taken usernames
+        const messagesContainer = document.getElementById("messages");
+        const errorMessage = document.getElementById("errorMessage");
+        const currentUserSpan = document.getElementById("currentUser");
+
+        function enterChat() {
+            const usernameInput = document.getElementById("usernameInput").value;
+            
+            // Check if the username is taken
+            if (takenUsernames.includes(usernameInput) || usernameInput === "") {
+                errorMessage.style.display = "block";
+            } else {
+                // Add username to taken usernames
+                takenUsernames.push(usernameInput);
+
+                // Hide login and show chatroom
+                document.getElementById("login").style.display = "none";
+                document.getElementById("chatroom").style.display = "block";
+                
+                // Display the username in the chatroom
+                currentUserSpan.textContent = usernameInput;
+            }
+        }
+
+        function sendMessage() {
+            const newMessage = document.getElementById("newMessage").value;
+
+            if (newMessage === "") return;
+
+            // Display the message in the chat
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("message");
+            messageElement.innerHTML = `<span class="username">${currentUserSpan.textContent}:</span> ${newMessage}`;
+            messagesContainer.appendChild(messageElement);
+
+            // Clear the input field
+            document.getElementById("newMessage").value = "";
+            
+            // Scroll to the bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function leaveChat() {
+            // Hide chatroom and show login again
+            document.getElementById("chatroom").style.display = "none";
+            document.getElementById("login").style.display = "block";
+            
+            // Remove the username from the taken list
+            const username = currentUserSpan.textContent;
+            const index = takenUsernames.indexOf(username);
+            if (index !== -1) {
+                takenUsernames.splice(index, 1);
+            }
+
+            // Clear the messages
+            messagesContainer.innerHTML = "";
+        }
+    </script>
+
+</body>
+</html>
