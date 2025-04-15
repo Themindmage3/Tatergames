@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,32 +9,9 @@
     #messages { flex-grow: 1; padding: 10px; overflow-y: auto; }
     #msgForm { display: flex; padding: 10px; }
     #inputBox { flex-grow: 1; padding: 5px; }
-    .message { padding: 5px; margin: 5px 0; background-color: #f1f1f1; border-radius: 5px; position: relative; }
+    .message { padding: 5px; margin: 5px 0; background-color: #f1f1f1; border-radius: 5px; }
     .message span { font-weight: bold; }
-    .admin-options {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 5px;
-      display: none;
-      border-radius: 5px;
-    }
-    .message:hover .admin-options {
-      display: block;
-    }
-    .admin-options button {
-      background-color: red;
-      border: none;
-      color: white;
-      cursor: pointer;
-      padding: 5px;
-      margin-left: 5px;
-    }
-    .admin-options button:hover {
-      background-color: darkred;
-    }
+
     /* Popup Styling */
     #usernameModal {
       position: fixed;
@@ -45,7 +23,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      visibility: hidden;
+      visibility: hidden; /* Hidden by default */
       opacity: 0;
       transition: opacity 0.3s ease;
     }
@@ -60,13 +38,19 @@
       text-align: center;
       min-width: 250px;
     }
-    #usernameInput, #passwordInput {
+    #usernameInput {
       padding: 10px;
       font-size: 16px;
       width: 100%;
       margin-bottom: 10px;
     }
-    #submitUsername {
+    #passwordInput {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    #submitUsername, #submitPassword {
       padding: 10px 20px;
       background-color: #007bff;
       color: white;
@@ -74,8 +58,23 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    #submitUsername:hover {
+    #submitUsername:hover, #submitPassword:hover {
       background-color: #0056b3;
+    }
+
+    /* Delete button styling */
+    #deleteMessagesButton {
+      background-color: red;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px auto;
+      display: block;
+    }
+    #deleteMessagesButton:hover {
+      background-color: #cc0000;
     }
   </style>
 </head>
@@ -95,19 +94,28 @@
   <!-- Delete Messages Button -->
   <button id="deleteMessagesButton">Delete All Messages</button>
 
-  <!-- Popup Modal to ask for username and password -->
+  <!-- Popup Modal to ask for username -->
   <div id="usernameModal">
     <div id="usernameModalContent">
-      <h2>Enter your username and password</h2>
+      <h2>Enter your username</h2>
       <input type="text" id="usernameInput" placeholder="Enter your username" />
-      <input type="password" id="passwordInput" placeholder="Enter your password" />
       <button id="submitUsername">Submit</button>
     </div>
   </div>
 
+  <!-- Popup Modal to ask for password -->
+  <div id="passwordModal" style="display: none;">
+    <div id="usernameModalContent">
+      <h2>Enter the password for TheMindMage</h2>
+      <input type="password" id="passwordInput" placeholder="Enter password" />
+      <button id="submitPassword">Submit</button>
+    </div>
+  </div>
+
   <script type="module">
+    // Import necessary functions from Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove, set } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded, remove, set, get, child } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
     // Firebase Configuration (replace with your actual Firebase config)
     const firebaseConfig = {
@@ -129,52 +137,107 @@
     const msgForm = document.getElementById("msgForm");
     const inputBox = document.getElementById("inputBox");
     const usernameModal = document.getElementById("usernameModal");
+    const passwordModal = document.getElementById("passwordModal");
     const usernameInput = document.getElementById("usernameInput");
     const passwordInput = document.getElementById("passwordInput");
     const submitUsernameButton = document.getElementById("submitUsername");
+    const submitPasswordButton = document.getElementById("submitPassword");
     const deleteMessagesButton = document.getElementById("deleteMessagesButton");
 
-    // Admin credentials (hardcoded)
+    // Variable to store username
+    let username = "";
+    let isBanned = false;
+    let timeoutEnd = null;
     const adminUsername = "TheMindMage";
     const adminPassword = "tridenttech99";
-    let username = "";
-    let isAdmin = false;
 
-    // Show the popup modal for username and password input
+    // Show the popup modal for username input
     function showUsernameModal() {
       usernameModal.classList.add("show");
     }
 
-    // Hide the popup modal for username and password input
+    // Hide the popup modal for username input
     function hideUsernameModal() {
       usernameModal.classList.remove("show");
     }
 
-    // Handle submitting username and password
+    // Show the password modal
+    function showPasswordModal() {
+      passwordModal.style.display = "block";
+    }
+
+    // Hide the password modal
+    function hidePasswordModal() {
+      passwordModal.style.display = "none";
+    }
+
+    // Handle submitting username
     submitUsernameButton.addEventListener("click", () => {
       const enteredUsername = usernameInput.value.trim();
-      const enteredPassword = passwordInput.value.trim();
+      if (enteredUsername !== "") {
+        username = enteredUsername;
+        hideUsernameModal();
 
-      if (enteredUsername === adminUsername && enteredPassword === adminPassword) {
-        isAdmin = true;
-        username = enteredUsername;
-        hideUsernameModal();
-        msgForm.style.display = "flex"; // Show the message input form
-        alert("You are logged in as an Admin.");
-      } else if (enteredUsername !== "" && enteredPassword !== "") {
-        username = enteredUsername;
-        hideUsernameModal();
-        msgForm.style.display = "flex"; // Show the message input form
+        // Check if the username is admin and prompt for password
+        if (username === adminUsername) {
+          showPasswordModal();
+        } else {
+          checkBanStatus();
+        }
       } else {
-        alert("Invalid credentials.");
+        alert("Please enter a valid username.");
       }
     });
+
+    // Handle submitting password
+    submitPasswordButton.addEventListener("click", () => {
+      const enteredPassword = passwordInput.value.trim();
+      if (enteredPassword === adminPassword) {
+        hidePasswordModal();
+        checkBanStatus();
+      } else {
+        alert("Incorrect password. Please try again.");
+      }
+    });
+
+    // Check if the user is banned or timed out
+    function checkBanStatus() {
+      get(child(ref(db), "bans/" + username)).then((snapshot) => {
+        if (snapshot.exists()) {
+          isBanned = true;
+          alert("You are banned from this chat.");
+          msgForm.style.display = "none"; // Hide message input
+        } else {
+          // Check if the user is timed out
+          get(child(ref(db), "timeouts/" + username)).then((timeoutSnapshot) => {
+            if (timeoutSnapshot.exists()) {
+              const timeoutData = timeoutSnapshot.val();
+              const currentTime = Date.now();
+              if (currentTime < timeoutData.endTime) {
+                timeoutEnd = timeoutData.endTime;
+                const timeoutDuration = (timeoutEnd - currentTime) / 1000; // In seconds
+                alert(`You are on timeout for ${Math.round(timeoutDuration)} more seconds.`);
+                msgForm.style.display = "none"; // Hide message input
+              } else {
+                // Timeout expired, allow messaging again
+                remove(ref(db, "timeouts/" + username)); // Remove timeout from database
+                msgForm.style.display = "flex";
+              }
+            } else {
+              msgForm.style.display = "flex"; // If no timeout, allow messaging
+            }
+          });
+        }
+      });
+    }
 
     // Send message function
     msgForm.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (isBanned) return; // If banned, do not send the message
       const message = inputBox.value.trim();
       if (message !== "" && username !== "") {
+        // Pushing the message to Firebase
         push(ref(db, "messages"), {
           message: message,
           user: username,
@@ -187,29 +250,7 @@
       }
     });
 
-    // Load and display messages in real-time
-    onChildAdded(ref(db, "messages"), (snapshot) => {
-      const messageData = snapshot.val();
-      const messageElement = document.createElement("div");
-      messageElement.classList.add("message");
-      messageElement.innerHTML = `<span>${messageData.user}:</span> ${messageData.message}`;
-      
-      if (isAdmin) {
-        // Admin options (ban or timeout)
-        const adminOptions = document.createElement("div");
-        adminOptions.classList.add("admin-options");
-        adminOptions.innerHTML = `
-          <button onclick="banUser('${messageData.user}')">Ban</button>
-          <button onclick="timeoutUser('${messageData.user}')">Timeout</button>
-        `;
-        messageElement.appendChild(adminOptions);
-      }
-
-      messagesDiv.appendChild(messageElement);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to the bottom
-    });
-
-    // Delete all messages function
+    // Admin deletes all messages
     deleteMessagesButton.addEventListener("click", () => {
       remove(ref(db, "messages")).then(() => {
         messagesDiv.innerHTML = ""; // Clear messages from the UI
@@ -218,18 +259,6 @@
         console.error("Error deleting messages:", error);
       });
     });
-
-    // Ban user function (hardcoded for simplicity)
-    function banUser(usernameToBan) {
-      // Implement banning logic here (e.g., adding a ban record to Firebase)
-      alert(`${usernameToBan} has been banned.`);
-    }
-
-    // Timeout user function (hardcoded for simplicity)
-    function timeoutUser(usernameToTimeout) {
-      // Implement timeout logic here (e.g., adding a timeout record to Firebase)
-      alert(`${usernameToTimeout} has been timed out.`);
-    }
 
     // Show the modal on page load to ask for username
     showUsernameModal();
