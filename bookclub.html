@@ -7,7 +7,7 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; }
     #messages { flex-grow: 1; padding: 10px; overflow-y: auto; }
-    #msgForm { display: flex; padding: 10px; }
+    #msgForm { display: none; padding: 10px; }
     #inputBox { flex-grow: 1; padding: 5px; }
     .message { padding: 5px; margin: 5px 0; background-color: #f1f1f1; border-radius: 5px; }
     .message span { font-weight: bold; }
@@ -91,8 +91,8 @@
     <button type="submit">Send</button>
   </form>
 
-  <!-- Delete Messages Button -->
-  <button id="deleteMessagesButton">Delete All Messages</button>
+  <!-- Delete Messages Button (Admin only) -->
+  <button id="deleteMessagesButton" style="display: none;">Delete All Messages</button>
 
   <!-- Popup Modal to ask for username -->
   <div id="usernameModal">
@@ -103,7 +103,7 @@
     </div>
   </div>
 
-  <!-- Popup Modal to ask for password -->
+  <!-- Popup Modal to ask for password (Admin only) -->
   <div id="passwordModal" style="display: none;">
     <div id="usernameModalContent">
       <h2>Enter the password for TheMindMage</h2>
@@ -144,12 +144,15 @@
     const submitPasswordButton = document.getElementById("submitPassword");
     const deleteMessagesButton = document.getElementById("deleteMessagesButton");
 
-    // Variable to store username
-    let username = "";
-    let isBanned = false;
-    let timeoutEnd = null;
+    // Set the admin username and password directly
     const adminUsername = "TheMindMage";
     const adminPassword = "tridenttech99";
+
+    // Variable to store username
+    let username = "";
+    let isAdmin = false;
+    let isBanned = false;
+    let timeoutEnd = null;
 
     // Show the popup modal for username input
     function showUsernameModal() {
@@ -161,7 +164,7 @@
       usernameModal.classList.remove("show");
     }
 
-    // Show the password modal
+    // Show the password modal (for admin only)
     function showPasswordModal() {
       passwordModal.style.display = "block";
     }
@@ -189,10 +192,11 @@
       }
     });
 
-    // Handle submitting password
+    // Handle submitting password (for admin only)
     submitPasswordButton.addEventListener("click", () => {
       const enteredPassword = passwordInput.value.trim();
       if (enteredPassword === adminPassword) {
+        isAdmin = true; // Grant admin rights
         hidePasswordModal();
         checkBanStatus();
       } else {
@@ -252,12 +256,14 @@
 
     // Admin deletes all messages
     deleteMessagesButton.addEventListener("click", () => {
-      remove(ref(db, "messages")).then(() => {
-        messagesDiv.innerHTML = ""; // Clear messages from the UI
-        alert("All messages have been deleted.");
-      }).catch((error) => {
-        console.error("Error deleting messages:", error);
-      });
+      if (isAdmin) {
+        remove(ref(db, "messages")).then(() => {
+          messagesDiv.innerHTML = ""; // Clear messages from the UI
+          alert("All messages have been deleted.");
+        }).catch((error) => {
+          console.error("Error deleting messages:", error);
+        });
+      }
     });
 
     // Show the modal on page load to ask for username
