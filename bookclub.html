@@ -225,7 +225,7 @@
               } else {
                 // Timeout expired, allow messaging again
                 remove(ref(db, "timeouts/" + username)); // Remove timeout from database
-                msgForm.style.display = "flex";
+                msgForm.style.display = "flex"; // Show message form
               }
             } else {
               msgForm.style.display = "flex"; // If no timeout, allow messaging
