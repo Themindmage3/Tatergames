@@ -2,19 +2,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mage Chatroom</title>
+  <title>Firebase Chatroom</title>
   <style>
-    body{font-family:Arial,sans-serif;margin:0;padding:0;display:flex;flex-direction:column;justify-content:space-between;height:100vh}#messages{flex-grow:1;padding:10px;overflow-y:auto}#msgForm{display:flex;padding:10px}#inputBox{flex-grow:1;padding:5px}.message{padding:5px;margin:5px 0;background-color:#f1f1f1;border-radius:5px;position:relative}.message span{font-weight:bold}#usernameModal{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.7);display:flex;justify-content:center;align-items:center;visibility:hidden;opacity:0;transition:opacity .3s ease}#usernameModal.show{visibility:visible;opacity:1}#usernameModalContent{background-color:white;padding:20px;border-radius:8px;text-align:center;min-width:250px}#usernameInput,#passwordInput{padding:10px;font-size:16px;width:100%;margin-bottom:10px}#submitUsername{padding:10px 20px;background-color:#007bff;color:white;border:none;border-radius:5px;cursor:pointer}#submitUsername:hover{background-color:#0056b3}.admin-options{position:absolute;top:0;right:0;background-color:rgba(0,0,0,.8);color:white;padding:5px;display:none;border-radius:5px}.message:hover .admin-options{display:block}.admin-options button{background-color:red;border:none;color:white;cursor:pointer;padding:5px;margin-left:5px}.admin-options button:hover{background-color:darkred}
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; }
+    #messages { flex-grow: 1; padding: 10px; overflow-y: auto; }
+    #msgForm { display: flex; padding: 10px; }
+    #inputBox { flex-grow: 1; padding: 5px; }
+    .message { padding: 5px; margin: 5px 0; background-color: #f1f1f1; border-radius: 5px; position: relative; }
+    .message span { font-weight: bold; }
+    .admin-options {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px;
+      display: none;
+      border-radius: 5px;
+    }
+    .message:hover .admin-options {
+      display: block;
+    }
+    .admin-options button {
+      background-color: red;
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 5px;
+      margin-left: 5px;
+    }
+    .admin-options button:hover {
+      background-color: darkred;
+    }
+    /* Popup Styling */
+    #usernameModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #usernameModal.show {
+      visibility: visible;
+      opacity: 1;
+    }
+    #usernameModalContent {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 250px;
+    }
+    #usernameInput, #passwordInput {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    #submitUsername {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #submitUsername:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
-  <h1>Mage Chat</h1>
+
+  <h1>Firebase Chatroom</h1>
+
+  <!-- Messages Section -->
   <div id="messages"></div>
+
+  <!-- Message Input Form (Initially hidden) -->
   <form id="msgForm" style="display:none;">
     <input type="text" id="inputBox" placeholder="Type a message" />
     <button type="submit">Send</button>
   </form>
+
+  <!-- Delete Messages Button -->
   <button id="deleteMessagesButton">Delete All Messages</button>
+
+  <!-- Popup Modal to ask for username and password -->
   <div id="usernameModal">
     <div id="usernameModalContent">
       <h2>Enter your username and password</h2>
@@ -27,44 +108,132 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, remove, set } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-    const _0x2a4f=["\x69\x6E\x69\x74\x69\x61\x6C\x69\x7A\x65\x41\x70\x70","\x68\x74\x74\x70\x73\x3A\x2F\x2F\x77\x77\x77\x2E\x67\x6F\x6F\x67\x6C\x65\x2E\x63\x6F\x6D\x2F\x76\x34\x2F\x66\x69\x72\x65\x62\x61\x73\x65\x2D\x61\x70\x70\x2E\x6A\x73","\x67\x65\x74\x44\x61\x74\x61\x62\x61\x73\x65","\x72\x65\x66","\x70\x75\x73\x68","\x6F\x6E\x43\x68\x69\x6C\x64\x41\x64\x64\x65\x64","\x76\x61\x6C","\x74\x72\x69\x64\x65\x74\x74\x65\x63\x68\x39\x39","\x69\x66","\x74\x68\x65\x4D\x69\x6E\x64\x4D\x61\x67\x65","\x69\x73\x41\x64\x6D\x69\x6E","\x70\x61\x73\x73\x77\x6F\x72\x64","\x75\x73\x65\x72","\x72\x65\x61\x6C\x69\x67","\x61\x64\x6D\x69\x6E","\x63\x6C\x69\x65\x6E\x74","\x61\x64\x64\x45\x76\x65\x6E\x74\x4C\x69\x73\x74\x65\x6E\x65\x72","\x68\x6F\x6C\x64\x65\x72\x2E\x63\x68\x65\x63\x6B\x65\x64"];
-    const _0x4233=["\x4D\x61\x64\x65\x42\x65\x66\x6F\x72\x65","/timeout/","\x74\x69\x6D\x65\x6F\x75\x74","\x74\x69\x6D\x65\x73\x74\x61\x6D\x70","\x77\x68\x65\x72\x65\x74","To\x2D\x69\x6D\x65","69\x75\x73\x65\x72\x73","77\x65\x62\x73"];
-    const _0x4179={
-      "apiKey":"AIzaSyBPf3e1v1rJ5UkhDJS42fR5vpWyXQhbF7g",
-      "authDomain":"id12-a1a42.firebaseapp.com",
-      "projectId":"id12-a1a42",
-      "storageBucket":"id12-a1a42.firebasestorage.app",
-      "messagingSenderId":"970958451595",
-      "appId":"1:970958451595:web:9ec5cc265b505798d2758e",
-      "measurementId":"G-G4ND0NEYQT"};
-      const _0x3de1=initializeApp(_0x4179);
-      const _0x3ef6=getDatabase(_0x3de1);
-      const _0x5760=document[_0x2a4f[10]](_0x2a4f[6]),_0x44d9=document[_0x2a4f[10]]("msgForm"),_0x353f=document[_0x2a4f[10]](_0x2a4f[0]),_0x4521=document[_0x2a4f[10]](_0x2a4f[9]),_0x6ae9=document[_0x2a4f[10]]("submitUsername"),_0x5eae=document[_0x2a4f[10]]("deleteMessagesButton"),_0x47bb=document[_0x2a4f[10]](_0x2a4f[1]),_0x4c7e="TheMindMage",_0x51e4="tridenttech99",_0x4ab4="false",_0x450f="";
 
-    const _0x30b1=function(_0x53fa,_0x10dd){
-      if(_0x53fa==="TheMindMage"&&_0x10dd==="tridenttech99"){
-        _0x4ab4="true";
-      }
+    // Firebase Configuration (replace with your actual Firebase config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPf3e1v1rJ5UkhDJS42fR5vpWyXQhbF7g",
+      authDomain: "id12-a1a42.firebaseapp.com",
+      projectId: "id12-a1a42",
+      storageBucket: "id12-a1a42.firebasestorage.app",
+      messagingSenderId: "970958451595",
+      appId: "1:970958451595:web:9ec5cc265b505798d2758e",
+      measurementId: "G-G4ND0NEYQT"
     };
 
-    _0x6ae9[_0x2a4f[2]](_0x2a4f[7],function(){
-      _0x30b1(_0x353f[_0x2a4f[3]],_0x4521[_0x2a4f[4]]);
-      if(_0x4ab4==="true"){
-        _0x44d9[_0x2a4f[5]]="flex"; 
-        _0x5760[_0x2a4f[5]]=_0x2a4f[8];
-      }else{
-        alert(_0x2a4f[11]);
+    // Initialize Firebase App
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Elements
+    const messagesDiv = document.getElementById("messages");
+    const msgForm = document.getElementById("msgForm");
+    const inputBox = document.getElementById("inputBox");
+    const usernameModal = document.getElementById("usernameModal");
+    const usernameInput = document.getElementById("usernameInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const submitUsernameButton = document.getElementById("submitUsername");
+    const deleteMessagesButton = document.getElementById("deleteMessagesButton");
+
+    // Admin credentials (hardcoded)
+    const adminUsername = "TheMindMage";
+    const adminPassword = "tridenttech99";
+    let username = "";
+    let isAdmin = false;
+
+    // Show the popup modal for username and password input
+    function showUsernameModal() {
+      usernameModal.classList.add("show");
+    }
+
+    // Hide the popup modal for username and password input
+    function hideUsernameModal() {
+      usernameModal.classList.remove("show");
+    }
+
+    // Handle submitting username and password
+    submitUsernameButton.addEventListener("click", () => {
+      const enteredUsername = usernameInput.value.trim();
+      const enteredPassword = passwordInput.value.trim();
+
+      if (enteredUsername === adminUsername && enteredPassword === adminPassword) {
+        isAdmin = true;
+        username = enteredUsername;
+        hideUsernameModal();
+        msgForm.style.display = "flex"; // Show the message input form
+        alert("You are logged in as an Admin.");
+      } else if (enteredUsername !== "" && enteredPassword !== "") {
+        username = enteredUsername;
+        hideUsernameModal();
+        msgForm.style.display = "flex"; // Show the message input form
+      } else {
+        alert("Invalid credentials.");
       }
     });
-    _0x5760[_0x2a4f[2]](_0x2a4f[6],function(_0x54b1){
-      _0x54b1[_0x2a4f[7]]&&_0x450f.push(ref(_0x3ef6,_0x2a4f[0]),{
-        "message":_0x353f[_0x2a4f[7]],
-        "user":_0x350f,
-        "timestamp":new Date().toISOString()})
-    });
-    _0x450f[_0x2a4f[2]](_0x2a4f[7],function(_0x343f){
-      const _0x7f3f=_0x343f[_0x2a4f[0]];
+
+    // Send message function
+    msgForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const message = inputBox.value.trim();
+      if (message !== "" && username !== "") {
+        push(ref(db, "messages"), {
+          message: message,
+          user: username,
+          timestamp: Date.now()
+        }).then(() => {
+          inputBox.value = ""; // Clear input field after sending
+        }).catch((error) => {
+          console.error("Error sending message:", error);
+        });
+      }
     });
 
-_   ;
-``
+    // Load and display messages in real-time
+    onChildAdded(ref(db, "messages"), (snapshot) => {
+      const messageData = snapshot.val();
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("message");
+      messageElement.innerHTML = `<span>${messageData.user}:</span> ${messageData.message}`;
+      
+      if (isAdmin) {
+        // Admin options (ban or timeout)
+        const adminOptions = document.createElement("div");
+        adminOptions.classList.add("admin-options");
+        adminOptions.innerHTML = `
+          <button onclick="banUser('${messageData.user}')">Ban</button>
+          <button onclick="timeoutUser('${messageData.user}')">Timeout</button>
+        `;
+        messageElement.appendChild(adminOptions);
+      }
+
+      messagesDiv.appendChild(messageElement);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to the bottom
+    });
+
+    // Delete all messages function
+    deleteMessagesButton.addEventListener("click", () => {
+      remove(ref(db, "messages")).then(() => {
+        messagesDiv.innerHTML = ""; // Clear messages from the UI
+        alert("All messages have been deleted.");
+      }).catch((error) => {
+        console.error("Error deleting messages:", error);
+      });
+    });
+
+    // Ban user function (hardcoded for simplicity)
+    function banUser(usernameToBan) {
+      // Implement banning logic here (e.g., adding a ban record to Firebase)
+      alert(`${usernameToBan} has been banned.`);
+    }
+
+    // Timeout user function (hardcoded for simplicity)
+    function timeoutUser(usernameToTimeout) {
+      // Implement timeout logic here (e.g., adding a timeout record to Firebase)
+      alert(`${usernameToTimeout} has been timed out.`);
+    }
+
+    // Show the modal on page load to ask for username
+    showUsernameModal();
+  </script>
+
+</body>
+</html>
