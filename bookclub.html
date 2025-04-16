@@ -1,126 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Chatroom</title>
+  <title>Mage Chat</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; }
-    #messages { flex-grow: 1; padding: 10px; overflow-y: auto; }
-    #msgForm { display: none; padding: 10px; }
-    #inputBox { flex-grow: 1; padding: 5px; }
-    .message { padding: 5px; margin: 5px 0; background-color: #f1f1f1; border-radius: 5px; }
-    .message span { font-weight: bold; }
-
-    /* Popup Styling */
-    #usernameModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      visibility: hidden; /* Hidden by default */
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    #usernameModal.show {
-      visibility: visible;
-      opacity: 1;
-    }
-    #usernameModalContent {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      min-width: 250px;
-    }
-    #usernameInput {
-      padding: 10px;
-      font-size: 16px;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    #passwordInput {
-      padding: 10px;
-      font-size: 16px;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    #submitUsername, #submitPassword {
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #submitUsername:hover, #submitPassword:hover {
-      background-color: #0056b3;
-    }
-
-    /* Delete button styling */
-    #deleteMessagesButton {
-      background-color: red;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px auto;
-      display: block;
-    }
-    #deleteMessagesButton:hover {
-      background-color: #cc0000;
-    }
+    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+    #messages { margin-top: 20px; }
+    .message { border-bottom: 1px solid #ccc; padding: 5px 0; background: #fff; margin: 5px 0; border-radius: 4px; padding: 10px; }
+    input { padding: 10px; width: 250px; }
+    button { padding: 10px 15px; margin-left: 5px; }
+    h1 { color: #4B0082; }
   </style>
 </head>
 <body>
+  <h1>🧙 Mage Chat</h1>
+  <input id="msgInput" placeholder="Enter your message..." />
+  <button onclick="sendMessage()">Send</button>
+  <button onclick="deleteAllMessages()" style="background: red; color: white;">Delete All</button>
 
-  <h1>Firebase Chatroom</h1>
-
-  <!-- Messages Section -->
   <div id="messages"></div>
 
-  <!-- Message Input Form (Initially hidden) -->
-  <form id="msgForm" style="display:none;">
-    <input type="text" id="inputBox" placeholder="Type a message" />
-    <button type="submit">Send</button>
-  </form>
-
-  <!-- Delete Messages Button (Admin only) -->
-  <button id="deleteMessagesButton" style="display: none;">Delete All Messages</button>
-
-  <!-- Popup Modal to ask for username -->
-  <div id="usernameModal">
-    <div id="usernameModalContent">
-      <h2>Enter your username</h2>
-      <input type="text" id="usernameInput" placeholder="Enter your username" />
-      <button id="submitUsername">Submit</button>
-    </div>
-  </div>
-
-  <!-- Popup Modal to ask for password (Admin only) -->
-  <div id="passwordModal" style="display: none;">
-    <div id="usernameModalContent">
-      <h2>Enter the password for TheMindMage</h2>
-      <input type="password" id="passwordInput" placeholder="Enter password" />
-      <button id="submitPassword">Submit</button>
-    </div>
-  </div>
-
-  <script type="module">
-    // Import necessary functions from Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove, set, get, child } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-
-    // Firebase Configuration (replace with your actual Firebase config)
+  <script>
+    // Firebase config with your credentials
     const firebaseConfig = {
       apiKey: "AIzaSyBPf3e1v1rJ5UkhDJS42fR5vpWyXQhbF7g",
       authDomain: "id12-a1a42.firebaseapp.com",
+      databaseURL: "https://id12-a1a42-default-rtdb.firebaseio.com",
       projectId: "id12-a1a42",
       storageBucket: "id12-a1a42.firebasestorage.app",
       messagingSenderId: "970958451595",
@@ -128,147 +35,50 @@
       measurementId: "G-G4ND0NEYQT"
     };
 
-    // Initialize Firebase App
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    // Elements
-    const messagesDiv = document.getElementById("messages");
-    const msgForm = document.getElementById("msgForm");
-    const inputBox = document.getElementById("inputBox");
-    const usernameModal = document.getElementById("usernameModal");
-    const passwordModal = document.getElementById("passwordModal");
-    const usernameInput = document.getElementById("usernameInput");
-    const passwordInput = document.getElementById("passwordInput");
-    const submitUsernameButton = document.getElementById("submitUsername");
-    const submitPasswordButton = document.getElementById("submitPassword");
-    const deleteMessagesButton = document.getElementById("deleteMessagesButton");
+    // Anonymous auth
+    firebase.auth().signInAnonymously();
 
-    // Set the admin username and password directly
-    const adminUsername = "TheMindMage";
-    const adminPassword = "tridenttech99";
+    const messagesRef = db.collection("mage_chat");
 
-    // Variable to store username
-    let username = "";
-    let isAdmin = false;
-    let isBanned = false;
-    let timeoutEnd = null;
-
-    // Show the popup modal for username input
-    function showUsernameModal() {
-      usernameModal.classList.add("show");
-    }
-
-    // Hide the popup modal for username input
-    function hideUsernameModal() {
-      usernameModal.classList.remove("show");
-    }
-
-    // Show the password modal (for admin only)
-    function showPasswordModal() {
-      passwordModal.style.display = "block";
-    }
-
-    // Hide the password modal
-    function hidePasswordModal() {
-      passwordModal.style.display = "none";
-    }
-
-    // Handle submitting username
-    submitUsernameButton.addEventListener("click", () => {
-      const enteredUsername = usernameInput.value.trim();
-      if (enteredUsername !== "") {
-        username = enteredUsername;
-        hideUsernameModal();
-
-        // Check if the username is admin and prompt for password
-        if (username === adminUsername) {
-          showPasswordModal();
-        } else {
-          checkBanStatus();
-        }
-      } else {
-        alert("Please enter a valid username.");
+    // Send message
+    function sendMessage() {
+      const input = document.getElementById("msgInput");
+      const message = input.value.trim();
+      if (message) {
+        messagesRef.add({
+          text: message,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        input.value = "";
       }
-    });
+    }
 
-    // Handle submitting password (for admin only)
-    submitPasswordButton.addEventListener("click", () => {
-      const enteredPassword = passwordInput.value.trim();
-      if (enteredPassword === adminPassword) {
-        isAdmin = true; // Grant admin rights
-        hidePasswordModal();
-        checkBanStatus();
-      } else {
-        alert("Incorrect password. Please try again.");
-      }
-    });
-
-    // Check if the user is banned or timed out
-    function checkBanStatus() {
-      get(child(ref(db), "bans/" + username)).then((snapshot) => {
-        if (snapshot.exists()) {
-          isBanned = true;
-          alert("You are banned from this chat.");
-          msgForm.style.display = "none"; // Hide message input
-        } else {
-          // Check if the user is timed out
-          get(child(ref(db), "timeouts/" + username)).then((timeoutSnapshot) => {
-            if (timeoutSnapshot.exists()) {
-              const timeoutData = timeoutSnapshot.val();
-              const currentTime = Date.now();
-              if (currentTime < timeoutData.endTime) {
-                timeoutEnd = timeoutData.endTime;
-                const timeoutDuration = (timeoutEnd - currentTime) / 1000; // In seconds
-                alert(`You are on timeout for ${Math.round(timeoutDuration)} more seconds.`);
-                msgForm.style.display = "none"; // Hide message input
-              } else {
-                // Timeout expired, allow messaging again
-                remove(ref(db, "timeouts/" + username)); // Remove timeout from database
-                msgForm.style.display = "flex"; // Show message form
-              }
-            } else {
-              msgForm.style.display = "flex"; // If no timeout, allow messaging
-            }
-          });
-        }
+    // Display messages in real-time
+    messagesRef.orderBy("timestamp").onSnapshot(snapshot => {
+      const messagesDiv = document.getElementById("messages");
+      messagesDiv.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        messagesDiv.innerHTML += `<div class="message">${data.text}</div>`;
       });
+    });
+
+    // Delete all messages
+    function deleteAllMessages() {
+      if (confirm("Are you sure you want to delete all messages? This cannot be undone.")) {
+        messagesRef.get().then(snapshot => {
+          const batch = db.batch();
+          snapshot.forEach(doc => batch.delete(doc.ref));
+          return batch.commit();
+        }).catch(error => {
+          console.error("Error deleting messages: ", error);
+        });
+      }
     }
-
-    // Send message function
-    msgForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      if (isBanned) return; // If banned, do not send the message
-      const message = inputBox.value.trim();
-      if (message !== "" && username !== "") {
-        // Pushing the message to Firebase
-        push(ref(db, "messages"), {
-          message: message,
-          user: username,
-          timestamp: Date.now()
-        }).then(() => {
-          inputBox.value = ""; // Clear input field after sending
-        }).catch((error) => {
-          console.error("Error sending message:", error);
-        });
-      }
-    });
-
-    // Admin deletes all messages
-    deleteMessagesButton.addEventListener("click", () => {
-      if (isAdmin) {
-        remove(ref(db, "messages")).then(() => {
-          messagesDiv.innerHTML = ""; // Clear messages from the UI
-          alert("All messages have been deleted.");
-        }).catch((error) => {
-          console.error("Error deleting messages:", error);
-        });
-      }
-    });
-
-    // Show the modal on page load to ask for username
-    showUsernameModal();
   </script>
-
 </body>
 </html>
